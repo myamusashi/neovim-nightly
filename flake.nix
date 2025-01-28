@@ -2,21 +2,19 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    neovim-nightly = { url = "https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz"; };
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = nixpkgs.legacyPackages.${system};
-      in {
-        packages = rec {
-          neovim-nightly = pkgs.stdenv.mkDerivation rec {
+  outputs = { self, nixpkgs, neovim-src, ... }:
+    let forAllSystems = nixpkgs.lib.genAttrs [ "x86_64-linux" ];
+    in {
+      packages = forAllSystems (system:
+        let pkgs = nixpkgs.legacyPackages.${system};
+        in {
+          default = pkgs.stdenv.mkDerivation {
             pname = "neovim-nightly";
             version = "0.11.0-dev-1649+gc47496791a";
-
-            src = fetchTarball {
-              url = "https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz";
-              sha256 = "0vx5aqhpbybq04s70ajc06zv6bdlg7lxb379n1jxmnclqc65ggnx";
-            };
+            src = neovim-src;
 
             nativeBuildInputs = [ pkgs.autoPatchelfHook ];
             buildInputs = [ pkgs.stdenv.cc.cc ];
@@ -33,8 +31,6 @@
               platforms = [ "x86_64-linux" ];
             };
           };
-
-          default = neovim-nightly;
-        };
-      });
+        });
+    };
 }
